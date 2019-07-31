@@ -6,6 +6,7 @@ import android.graphics.*
 import android.support.v4.view.animation.LinearOutSlowInInterpolator
 import android.util.AttributeSet
 import android.util.Log
+import android.util.TypedValue
 import android.view.View
 
 /**
@@ -17,38 +18,41 @@ class WaveLoadingView : View{
      companion object Config{
          val TAG = WaveLoadingView::class.java.simpleName!!
          const val ANIM_TIME = 3000L
-         const val WAVE_OFFSET = 5
+         const val WAVE_OFFSET = 10
          const val DEFAULT_SHAPE = 0
-         const val DEFAULT_SHAPE_CORNER = 10f
+         const val DEFAULT_SHAPE_CORNER = 0f
          const val DEFAULT_WAVE_COLOR = "#212121"
          const val DEFAULT_WAVE_BACKGROUND_COLOR = "#ffffffff"
          const val DEFAULT_BORDER_COLOR = "#212121"
-         const val DEFAULT_BORDER_WIDTH = 10f
-         const val DEFAULT_PROCESS = 0
+         const val DEFAULT_BORDER_WIDTH = 3f
+         const val MAX_BORDER_WIDTH = 12f
+         const val DEFAULT_PROCESS = 50
      }
 
     private lateinit var wavePaint: Paint
     private lateinit var borderPaint: Paint
-    private lateinit var bitmapPaint : Paint
     private lateinit var textPaint: Paint
     private lateinit var valueAnim : ValueAnimator
     private val wavePath = Path()
     private val clipPath = Path()
     private var offsetXFast = 0f
     private var offsetXSlow = 0f
-    private var centerX = 0f
-    private var centerY = 0f
-    private var cricleRaidus = 0f
+    private var offsetY = 0f
+    private var canvasWidth = 0
+    private var canvasHeight = 0
+    private var viewWidth = 0
+    private var viewHeight = 0
+    private val shapeRect = RectF()
+    private val shapeCircle = Circle()
+    private var shape = Shape.CIRCLE
 
-    var corner = 0f
-    var shape = 0
+    var shapeCorner = 0f
     var waveColor  = 0
     var waveSecondColor  = 0
     var waveBackgroundColor = 0
     var borderColor = 0
     var borderWidth = 0f
     var process = 0
-
 
     constructor(context: Context?) : super(context){
         init(context, null)
@@ -62,96 +66,193 @@ class WaveLoadingView : View{
 
     private fun init(context: Context?, attrs: AttributeSet?){
 
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
+//            background = null
+//        }
+
+        //init Attrs
         val typeArray = context?.obtainStyledAttributes(attrs, R.styleable.WaveLoadingView)
-        shape = typeArray?.getInteger(R.styleable.WaveLoadingView_wl_shape, DEFAULT_SHAPE)!!
-        corner = typeArray?.getDimension(R.styleable.WaveLoadingView_wl_shapeCorner, DEFAULT_SHAPE_CORNER)
+        shape = when(typeArray?.getInteger(R.styleable.WaveLoadingView_wl_shape, DEFAULT_SHAPE)!!){
+            0 -> Shape.CIRCLE
+            1 -> Shape.SQUARE
+            2 -> Shape.RECT
+            else -> Shape.NONE
+        }
+        shapeCorner = typeArray?.getDimension(R.styleable.WaveLoadingView_wl_shapeCorner, DEFAULT_SHAPE_CORNER)
+
         waveColor = typeArray?.getColor(R.styleable.WaveLoadingView_wl_waveColor, Color.parseColor(DEFAULT_WAVE_COLOR))
         waveSecondColor = adjustAlpha(waveColor, 0.5f)
         waveBackgroundColor = typeArray?.getColor(R.styleable.WaveLoadingView_wl_waveBackgroundColor, Color.parseColor(DEFAULT_WAVE_BACKGROUND_COLOR))
+
         borderColor = typeArray?.getColor(R.styleable.WaveLoadingView_wl_borderColor, Color.parseColor(DEFAULT_BORDER_COLOR))
-        borderWidth = typeArray?.getDimension(R.styleable.WaveLoadingView_wl_borderWidth, DEFAULT_BORDER_WIDTH)
+        borderWidth = typeArray?.getDimension(R.styleable.WaveLoadingView_wl_borderWidth, dpTopx(DEFAULT_BORDER_WIDTH))
+        if(borderWidth > dpTopx(MAX_BORDER_WIDTH)) borderWidth = dpTopx(MAX_BORDER_WIDTH)
+
         process = typeArray?.getInteger(R.styleable.WaveLoadingView_wl_process, DEFAULT_PROCESS)
+        if(process < 0) process = 0
+        if(process > 100) process = 100
         typeArray?.recycle()
 
+        //init Paint
         wavePaint = Paint(Paint.ANTI_ALIAS_FLAG)
         wavePaint.style = Paint.Style.FILL_AND_STROKE
-        bitmapPaint = Paint(Paint.ANTI_ALIAS_FLAG)
-        borderPaint = Paint(Paint.ANTI_ALIAS_FLAG)
-        borderPaint.color = Color.RED
-        borderPaint.style = Paint.Style.STROKE
-        borderPaint.strokeWidth = 3f
 
+        borderPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+        borderPaint.style = Paint.Style.STROKE
+
+        //init Anim
         valueAnim = ValueAnimator.ofFloat(0f, 1f)
         valueAnim.apply {
             duration = ANIM_TIME
-            addUpdateListener {animation ->
-                offsetXFast = (offsetXFast + WAVE_OFFSET) % width
-                offsetXSlow = (offsetXSlow + WAVE_OFFSET / 2) % width
+            addUpdateListener {
+                offsetXFast = (offsetXFast + WAVE_OFFSET) % canvasWidth
+                offsetXSlow = (offsetXSlow + WAVE_OFFSET / 2) % canvasWidth
                 postInvalidate()
             }
             LinearOutSlowInInterpolator()
             repeatCount = ValueAnimator.INFINITE
         }
 
-        viewTreeObserver.addOnGlobalLayoutListener{
-            Log.d(TAG, "onGlobalLayout()")
-        }
-
         Log.d(TAG, "init()")
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-        Log.d(TAG, "onMeasure()")
         val measureWidth = MeasureSpec.getSize(widthMeasureSpec)
         val measureHeight = MeasureSpec.getSize(heightMeasureSpec)
-        val size = if(measureHeight < measureWidth) measureHeight else measureWidth
-        setMeasuredDimension(size, size)
+        when(shape){
+            Shape.CIRCLE, Shape.SQUARE -> {
+                val measureSpec = if(measureHeight < measureWidth) heightMeasureSpec else widthMeasureSpec
+                super.onMeasure(measureSpec, measureSpec)
+            }else -> {
+                super.onMeasure(widthMeasureSpec, heightMeasureSpec)
+            }
+        }
+        Log.d(TAG, "onMeasure(), measureHeight = $measuredHeight, measureWidth = $measuredWidth")
     }
 
+    /**
+     * ConstraintLayout布局会让setMeasuredDimension()失效,所以导致 measuredHeight 和 h 不一样
+     * 所以计算圆形和正方形时要注意居中
+     */
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
-        super.onSizeChanged(w, h, oldw, oldh)
-        Log.d(TAG, "onSizeChanged()")
-        centerX = w / 2f
-        centerY = h / 2f
+        canvasWidth = measuredWidth
+        canvasHeight = measuredHeight
+        viewWidth = canvasWidth
+        viewHeight = canvasHeight
+        clipPath.reset()
         when(shape){
-            1 -> {}
-            2 -> {}
-            3 -> {}
-            else -> {
-                cricleRaidus = centerX
-                clipPath.reset()
-                clipPath.addCircle(centerX, centerY, cricleRaidus, Path.Direction.CCW)
+            Shape.CIRCLE -> {
+                viewWidth = w
+                viewHeight = h
+                shapeCircle.centerX = viewWidth / 2f
+                shapeCircle.centerY = viewHeight / 2f
+                shapeCircle.circleRadius = if(viewHeight < viewWidth) viewHeight / 2f else viewWidth / 2f
+                clipPath.addCircle(
+                    shapeCircle.centerX, shapeCircle.centerY,
+                    shapeCircle.circleRadius,
+                    Path.Direction.CCW)
+            }
+            Shape.SQUARE -> {
+                viewWidth = w
+                viewHeight = h
+                shapeRect.set(
+                    Math.abs(viewWidth - canvasWidth) / 2f,
+                    Math.abs(viewHeight - canvasHeight) / 2f,
+                    Math.abs(viewWidth - canvasWidth) / 2f + canvasWidth,
+                    Math.abs(viewHeight - canvasHeight) / 2f + canvasHeight
+                )
+                if(shapeCorner == 0f)
+                    clipPath?.addRect(shapeRect, Path.Direction.CCW)
+                else
+                    clipPath.addRoundRect(
+                        shapeRect,
+                        shapeCorner, shapeCorner,
+                        Path.Direction.CCW)
+            }
+            Shape.RECT -> {
+                shapeRect.set(
+                    0f,
+                    0f,
+                    canvasWidth.toFloat(),
+                    canvasHeight.toFloat()
+                )
+                if(shapeCorner == 0f)
+                    clipPath?.addRect(shapeRect, Path.Direction.CCW)
+                else
+                    clipPath.addRoundRect(
+                        shapeRect,
+                        shapeCorner, shapeCorner,
+                        Path.Direction.CCW)
             }
         }
         drawWavePath()
+        
+        Log.d(TAG, "onSizeChanged(), w = $w, h = $h")
     }
 
     override fun onDraw(canvas: Canvas?) {
-
-        when(shape){
-            1 -> {}
-            2 -> {}
-            3 -> {}
-            else -> {
-                canvas?.clipPath(clipPath)
-                canvas?.drawCircle(centerX, centerY, cricleRaidus, borderPaint)
-            }
-        }
+        ClipShap(canvas)
+        drawWave(canvas)
+        drawBorder(canvas)
+        //画文字
 
 
-        canvas?.translate(-offsetXSlow, process.toFloat())
-        wavePaint.color = Color.BLUE
-        canvas?.drawPath(wavePath, wavePaint)
-
-        canvas?.save()
-        canvas?.translate(-offsetXFast,  process.toFloat())
-        wavePaint.color = Color.DKGRAY
-        canvas?.drawPath(wavePath, wavePaint)
-        canvas?.restore()
-
+        //启动动画
         if(!valueAnim.isRunning){
             valueAnim.start()
         }
+    }
+
+    /**
+     * 绘制边框
+     */
+    private fun drawBorder(canvas: Canvas?) {
+        borderPaint.color = borderColor
+        borderPaint.strokeWidth = borderWidth
+        when (shape) {
+            Shape.CIRCLE -> {
+                canvas?.drawCircle(
+                    shapeCircle.centerX, shapeCircle.centerY,
+                    shapeCircle.circleRadius,
+                    borderPaint
+                )
+            }
+            Shape.SQUARE, Shape.RECT -> {
+                if (shapeCorner == 0f)
+                    canvas?.drawRect(shapeRect, borderPaint)
+                else
+                    canvas?.drawRoundRect(
+                        shapeRect,
+                        shapeCorner, shapeCorner,
+                        borderPaint
+                    )
+            }
+        }
+    }
+
+    /**
+     * 绘制波浪
+     */
+    private fun drawWave(canvas: Canvas?) {
+        canvas?.save()
+        canvas?.translate(-offsetXSlow, offsetY)
+        wavePaint.color = waveSecondColor
+        canvas?.drawPath(wavePath, wavePaint)
+        canvas?.restore()
+
+        canvas?.save()
+        canvas?.translate(-offsetXFast, offsetY)
+        wavePaint.color = waveColor
+        canvas?.drawPath(wavePath, wavePaint)
+        canvas?.restore()
+    }
+
+    /**
+     * 裁剪画布形状
+     */
+    private fun ClipShap(canvas: Canvas?) {
+        if (shape != Shape.NONE) canvas?.clipPath(clipPath)
+        canvas?.drawColor(waveBackgroundColor)
     }
 
     override fun onWindowVisibilityChanged(visibility: Int) {
@@ -164,22 +265,23 @@ class WaveLoadingView : View{
         Log.d(TAG, "onWindowFocusChanged()")
     }
 
-
-
     override fun onDetachedFromWindow() {
         valueAnim.cancel()
         valueAnim.removeAllUpdateListeners()
         super.onDetachedFromWindow()
     }
 
-
-
     private fun drawWavePath() {
         wavePath.reset()
-        val waveLen = width / 2
-        val waveHeight = height / 10
-        wavePath.moveTo(-waveLen.toFloat(), height / 2f)
-        val rang = -waveLen..width * 3 + waveLen
+        val waveLen = viewWidth / 2
+        val waveHeight = viewHeight / 10
+        val valueProcess = process / 100f
+        val startY = if(viewHeight == canvasHeight)
+                        (1 - valueProcess) * canvasHeight
+                    else
+                        Math.abs(viewHeight - canvasHeight) / 2f + (1 - valueProcess) * canvasHeight
+        wavePath.moveTo(-waveLen.toFloat(), startY)
+        val rang = -waveLen..viewWidth * 3 + waveLen
         for (i in rang step waveLen) {
             wavePath.rQuadTo(
                 waveLen / 4f, waveHeight / 4f,
@@ -190,8 +292,8 @@ class WaveLoadingView : View{
                 waveLen / 2f, 0f
             )
         }
-        wavePath.rLineTo(0f, height / 2f)
-        wavePath.rLineTo(-(width * 3f + 2f * waveLen), 0f)
+        wavePath.rLineTo(0f, viewHeight.toFloat())
+        wavePath.rLineTo(-(viewWidth * 3f + 2f * waveLen), 0f)
         wavePath.close()
     }
 
@@ -201,6 +303,19 @@ class WaveLoadingView : View{
         val green = Color.green(color)
         val blue = Color.blue(color)
         return Color.argb(alpha, red, green, blue)
+    }
+
+    private fun dpTopx(dp : Float) = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dp, context.resources.displayMetrics)
+    private fun spTopx(sp : Float) = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, sp, context.resources.displayMetrics)
+
+    private class Circle{
+        var centerX = 0f
+        var centerY = 0f
+        var circleRadius = 0f
+    }
+
+    private enum class Shape{
+        CIRCLE, SQUARE, RECT, NONE
     }
 
 }
