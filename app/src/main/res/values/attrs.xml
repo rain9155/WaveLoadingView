@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <declare-styleable name="WaveLoadingView">
+
+        <attr name="wl_shape" format="enum">
+            <enum name="circle" value="0"/>
+            <enum name="square" value="1"/>
+            <enum name="rect" value="2"/>
+            <enum name="none" value="3"/>
+        </attr>
+
+        <attr name="wl_shapeCorner" format="dimension"/>
+        <attr name="wl_waveColor" format="color"/>
+        <attr name="wl_waveBackgroundColor" format="color"/>
+        <attr name="wl_borderColor" format="color"/>
+        <attr name="wl_borderWidth" format="dimension"/>
+        <attr name="wl_process" format="integer"/>
+
+    </declare-styleable>
+
+</resources>
