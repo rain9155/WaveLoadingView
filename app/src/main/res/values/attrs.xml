@@ -16,6 +16,11 @@
         <attr name="wl_borderColor" format="color"/>
         <attr name="wl_borderWidth" format="dimension"/>
         <attr name="wl_process" format="integer"/>
+        <attr name="wl_text" format="string"/>
+        <attr name="wl_textColor" format="color"/>
+        <attr name="wl_textSize" format="dimension"/>
+        <attr name="wl_textStrokeWidth" format="dimension"/>
+        <attr name="wl_textStrokeColor" format="color"/>
 
     </declare-styleable>
 

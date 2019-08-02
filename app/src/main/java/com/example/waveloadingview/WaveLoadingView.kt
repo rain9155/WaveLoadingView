@@ -4,6 +4,7 @@ import android.animation.ValueAnimator
 import android.content.Context
 import android.graphics.*
 import android.support.v4.view.animation.LinearOutSlowInInterpolator
+import android.text.TextUtils
 import android.util.AttributeSet
 import android.util.Log
 import android.util.TypedValue
@@ -21,12 +22,17 @@ class WaveLoadingView : View{
          const val WAVE_OFFSET = 10
          const val DEFAULT_SHAPE = 0
          const val DEFAULT_SHAPE_CORNER = 0f
-         const val DEFAULT_WAVE_COLOR = "#212121"
+         const val DEFAULT_WAVE_COLOR = "#00BCD4"
          const val DEFAULT_WAVE_BACKGROUND_COLOR = "#ffffffff"
-         const val DEFAULT_BORDER_COLOR = "#212121"
-         const val DEFAULT_BORDER_WIDTH = 3f
-         const val MAX_BORDER_WIDTH = 12f
+         const val DEFAULT_BORDER_COLOR = "#00BCD4"
+         const val DEFAULT_BORDER_WIDTH = 5f
+         const val MAX_BORDER_WIDTH = 20f
          const val DEFAULT_PROCESS = 50
+         const val DEFAULT_TEXT_COLOR = "#ffffffff"
+         const val DEFAULT_TEXT_SIZE = 25f
+         const val DEFAULT_TEXT_STROKE_WIDTH = 2f
+         const val MAX_TEXT_STROKE_WIDTH = 10f
+         const val DEFAULT_TEXT_STROKE_COLOR = "#00BCD4"
      }
 
     private lateinit var wavePaint: Paint
@@ -35,6 +41,7 @@ class WaveLoadingView : View{
     private lateinit var valueAnim : ValueAnimator
     private val wavePath = Path()
     private val clipPath = Path()
+    private val textPath = Path()
     private var offsetXFast = 0f
     private var offsetXSlow = 0f
     private var offsetY = 0f
@@ -45,6 +52,8 @@ class WaveLoadingView : View{
     private val shapeRect = RectF()
     private val shapeCircle = Circle()
     private var shape = Shape.CIRCLE
+    private var textWidth = 0
+    private var textHeight = 0
 
     var shapeCorner = 0f
     var waveColor  = 0
@@ -53,6 +62,11 @@ class WaveLoadingView : View{
     var borderColor = 0
     var borderWidth = 0f
     var process = 0
+    var text : String? = ""
+    var textSize = 0f
+    var textColor = 0
+    var textStrokeWidth = 0f
+    var textStrokeColor = 0
 
     constructor(context: Context?) : super(context){
         init(context, null)
@@ -72,16 +86,17 @@ class WaveLoadingView : View{
 
         //init Attrs
         val typeArray = context?.obtainStyledAttributes(attrs, R.styleable.WaveLoadingView)
-        shape = when(typeArray?.getInteger(R.styleable.WaveLoadingView_wl_shape, DEFAULT_SHAPE)!!){
+
+        shape = when(typeArray?.getInteger(R.styleable.WaveLoadingView_wl_shape, DEFAULT_SHAPE)){
             0 -> Shape.CIRCLE
             1 -> Shape.SQUARE
             2 -> Shape.RECT
             else -> Shape.NONE
         }
-        shapeCorner = typeArray?.getDimension(R.styleable.WaveLoadingView_wl_shapeCorner, DEFAULT_SHAPE_CORNER)
+        shapeCorner = typeArray?.getDimension(R.styleable.WaveLoadingView_wl_shapeCorner, DEFAULT_SHAPE_CORNER)!!
 
         waveColor = typeArray?.getColor(R.styleable.WaveLoadingView_wl_waveColor, Color.parseColor(DEFAULT_WAVE_COLOR))
-        waveSecondColor = adjustAlpha(waveColor, 0.5f)
+        waveSecondColor = adjustAlpha(waveColor, 0.7f)
         waveBackgroundColor = typeArray?.getColor(R.styleable.WaveLoadingView_wl_waveBackgroundColor, Color.parseColor(DEFAULT_WAVE_BACKGROUND_COLOR))
 
         borderColor = typeArray?.getColor(R.styleable.WaveLoadingView_wl_borderColor, Color.parseColor(DEFAULT_BORDER_COLOR))
@@ -91,6 +106,15 @@ class WaveLoadingView : View{
         process = typeArray?.getInteger(R.styleable.WaveLoadingView_wl_process, DEFAULT_PROCESS)
         if(process < 0) process = 0
         if(process > 100) process = 100
+
+        text = typeArray?.getString(R.styleable.WaveLoadingView_wl_text)
+        if(TextUtils.isEmpty(text)) text = ""
+        textSize = typeArray?.getDimension(R.styleable.WaveLoadingView_wl_textSize, spTopx(DEFAULT_TEXT_SIZE))
+        textStrokeWidth = typeArray?.getDimension(R.styleable.WaveLoadingView_wl_textStrokeWidth, spTopx(DEFAULT_TEXT_STROKE_WIDTH))
+        if(textStrokeWidth > spTopx(MAX_TEXT_STROKE_WIDTH)) textStrokeWidth = spTopx(MAX_TEXT_STROKE_WIDTH)
+        textStrokeColor = typeArray?.getColor(R.styleable.WaveLoadingView_wl_textStrokeColor, Color.parseColor(DEFAULT_TEXT_STROKE_COLOR))
+        textColor = typeArray?.getColor(R.styleable.WaveLoadingView_wl_textColor, Color.parseColor(DEFAULT_TEXT_COLOR))
+
         typeArray?.recycle()
 
         //init Paint
@@ -99,6 +123,14 @@ class WaveLoadingView : View{
 
         borderPaint = Paint(Paint.ANTI_ALIAS_FLAG)
         borderPaint.style = Paint.Style.STROKE
+
+        textPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+        textPaint.textSize = textSize
+        textPaint.isFakeBoldText = true
+        textWidth = textPaint.measureText(text).toInt()
+        val textRect = Rect()
+        textPaint.getTextBounds(text, 0, text!!.length, textRect)
+        textHeight = textRect.height()
 
         //init Anim
         valueAnim = ValueAnimator.ofFloat(0f, 1f)
@@ -186,7 +218,9 @@ class WaveLoadingView : View{
             }
         }
         drawWavePath()
-        
+        textPath.reset()
+        textPath.moveTo((viewWidth - textWidth) / 2f, calculateYbyProcess() + textHeight / 2f)
+        textPath.rLineTo(textWidth.toFloat(), 0f)
         Log.d(TAG, "onSizeChanged(), w = $w, h = $h")
     }
 
@@ -195,7 +229,15 @@ class WaveLoadingView : View{
         drawWave(canvas)
         drawBorder(canvas)
         //画文字
-
+        if(!TextUtils.isEmpty(text)){
+            textPaint.style = Paint.Style.STROKE
+            textPaint.color = textStrokeColor
+            textPaint.strokeWidth = textStrokeWidth
+            canvas?.drawTextOnPath(text, textPath, 0f, 0f, textPaint)
+            textPaint.style = Paint.Style.FILL
+            textPaint.color = textColor
+            canvas?.drawTextOnPath(text, textPath, 0f, 0f, textPaint)
+        }
 
         //启动动画
         if(!valueAnim.isRunning){
@@ -275,11 +317,7 @@ class WaveLoadingView : View{
         wavePath.reset()
         val waveLen = viewWidth / 2
         val waveHeight = viewHeight / 10
-        val valueProcess = process / 100f
-        val startY = if(viewHeight == canvasHeight)
-                        (1 - valueProcess) * canvasHeight
-                    else
-                        Math.abs(viewHeight - canvasHeight) / 2f + (1 - valueProcess) * canvasHeight
+        val startY = calculateYbyProcess()
         wavePath.moveTo(-waveLen.toFloat(), startY)
         val rang = -waveLen..viewWidth * 3 + waveLen
         for (i in rang step waveLen) {
@@ -296,6 +334,15 @@ class WaveLoadingView : View{
         wavePath.rLineTo(-(viewWidth * 3f + 2f * waveLen), 0f)
         wavePath.close()
     }
+
+    private fun calculateYbyProcess(): Float {
+        val valueProcess = process / 100f
+        return  if (viewHeight == canvasHeight)
+                    (1 - valueProcess) * canvasHeight
+                else
+                     Math.abs(viewHeight - canvasHeight) / 2f + (1 - valueProcess) * canvasHeight
+    }
+
 
     private fun adjustAlpha(color : Int?,  factor : Float?) : Int{
         val alpha = Math.round(Color.alpha(color!!) * factor!!)
