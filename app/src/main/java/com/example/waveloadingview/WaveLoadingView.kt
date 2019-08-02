@@ -18,8 +18,8 @@ class WaveLoadingView : View{
 
      companion object Config{
          val TAG = WaveLoadingView::class.java.simpleName!!
-         const val ANIM_TIME = 3000L
-         const val WAVE_OFFSET = 10
+         const val ANIM_TIME = 1000L
+         const val WAVE_OFFSET = 6
          const val DEFAULT_SHAPE = 0
          const val DEFAULT_SHAPE_CORNER = 0f
          const val DEFAULT_WAVE_COLOR = "#00BCD4"
@@ -38,17 +38,22 @@ class WaveLoadingView : View{
     private lateinit var wavePaint: Paint
     private lateinit var borderPaint: Paint
     private lateinit var textPaint: Paint
-    private lateinit var valueAnim : ValueAnimator
+    private lateinit var waveValueAnim : ValueAnimator
+    private lateinit var textValueAnim : ValueAnimator
     private val wavePath = Path()
     private val clipPath = Path()
     private val textPath = Path()
-    private var offsetXFast = 0f
-    private var offsetXSlow = 0f
-    private var offsetY = 0f
+    private var animProcess = 0f
+    private var canvasOffsetXFast = 0f
+    private var canvasOffsetXSlow = 0f
+    private var canvasOffsetY = 0f
     private var canvasWidth = 0
     private var canvasHeight = 0
     private var viewWidth = 0
     private var viewHeight = 0
+    private var waveLen = 0
+    private var waveHeight = 0
+    private var waveStartY = 0f
     private val shapeRect = RectF()
     private val shapeCircle = Circle()
     private var shape = Shape.CIRCLE
@@ -133,12 +138,13 @@ class WaveLoadingView : View{
         textHeight = textRect.height()
 
         //init Anim
-        valueAnim = ValueAnimator.ofFloat(0f, 1f)
-        valueAnim.apply {
+        waveValueAnim = ValueAnimator.ofFloat(0f, 1f)
+        waveValueAnim.apply {
             duration = ANIM_TIME
-            addUpdateListener {
-                offsetXFast = (offsetXFast + WAVE_OFFSET) % canvasWidth
-                offsetXSlow = (offsetXSlow + WAVE_OFFSET / 2) % canvasWidth
+            addUpdateListener{ animation ->
+                animProcess = animation.animatedValue as Float
+                canvasOffsetXFast = (canvasOffsetXFast + WAVE_OFFSET) % canvasWidth
+                canvasOffsetXSlow = (canvasOffsetXSlow + WAVE_OFFSET / 2) % canvasWidth
                 postInvalidate()
             }
             LinearOutSlowInInterpolator()
@@ -171,56 +177,8 @@ class WaveLoadingView : View{
         canvasHeight = measuredHeight
         viewWidth = canvasWidth
         viewHeight = canvasHeight
-        clipPath.reset()
-        when(shape){
-            Shape.CIRCLE -> {
-                viewWidth = w
-                viewHeight = h
-                shapeCircle.centerX = viewWidth / 2f
-                shapeCircle.centerY = viewHeight / 2f
-                shapeCircle.circleRadius = if(viewHeight < viewWidth) viewHeight / 2f else viewWidth / 2f
-                clipPath.addCircle(
-                    shapeCircle.centerX, shapeCircle.centerY,
-                    shapeCircle.circleRadius,
-                    Path.Direction.CCW)
-            }
-            Shape.SQUARE -> {
-                viewWidth = w
-                viewHeight = h
-                shapeRect.set(
-                    Math.abs(viewWidth - canvasWidth) / 2f,
-                    Math.abs(viewHeight - canvasHeight) / 2f,
-                    Math.abs(viewWidth - canvasWidth) / 2f + canvasWidth,
-                    Math.abs(viewHeight - canvasHeight) / 2f + canvasHeight
-                )
-                if(shapeCorner == 0f)
-                    clipPath?.addRect(shapeRect, Path.Direction.CCW)
-                else
-                    clipPath.addRoundRect(
-                        shapeRect,
-                        shapeCorner, shapeCorner,
-                        Path.Direction.CCW)
-            }
-            Shape.RECT -> {
-                shapeRect.set(
-                    0f,
-                    0f,
-                    canvasWidth.toFloat(),
-                    canvasHeight.toFloat()
-                )
-                if(shapeCorner == 0f)
-                    clipPath?.addRect(shapeRect, Path.Direction.CCW)
-                else
-                    clipPath.addRoundRect(
-                        shapeRect,
-                        shapeCorner, shapeCorner,
-                        Path.Direction.CCW)
-            }
-        }
+        drawShapePath(w, h)
         drawWavePath()
-        textPath.reset()
-        textPath.moveTo((viewWidth - textWidth) / 2f, calculateYbyProcess() + textHeight / 2f)
-        textPath.rLineTo(textWidth.toFloat(), 0f)
         Log.d(TAG, "onSizeChanged(), w = $w, h = $h")
     }
 
@@ -228,8 +186,21 @@ class WaveLoadingView : View{
         ClipShap(canvas)
         drawWave(canvas)
         drawBorder(canvas)
-        //画文字
-        if(!TextUtils.isEmpty(text)){
+        drawText(canvas)
+        if(!waveValueAnim.isRunning) waveValueAnim.start()
+    }
+
+    /**
+     * 绘制文字
+     */
+    private fun drawText(canvas: Canvas?) {
+        if (!TextUtils.isEmpty(text)) {
+
+            textPath.reset()
+            textPath.moveTo((viewWidth - textWidth) / 2f, waveStartY + textHeight / 2f)
+            textPath.rQuadTo(textWidth / 4f, -waveHeight.toFloat() * (1 - animProcess) / 4, textWidth / 2f, 0f)
+            textPath.rQuadTo(textWidth / 4f, waveHeight.toFloat() * (1 - animProcess) / 4, textWidth / 2f, 0f)
+
             textPaint.style = Paint.Style.STROKE
             textPaint.color = textStrokeColor
             textPaint.strokeWidth = textStrokeWidth
@@ -237,11 +208,6 @@ class WaveLoadingView : View{
             textPaint.style = Paint.Style.FILL
             textPaint.color = textColor
             canvas?.drawTextOnPath(text, textPath, 0f, 0f, textPaint)
-        }
-
-        //启动动画
-        if(!valueAnim.isRunning){
-            valueAnim.start()
         }
     }
 
@@ -277,13 +243,13 @@ class WaveLoadingView : View{
      */
     private fun drawWave(canvas: Canvas?) {
         canvas?.save()
-        canvas?.translate(-offsetXSlow, offsetY)
+        canvas?.translate(canvasOffsetXSlow, canvasOffsetY)
         wavePaint.color = waveSecondColor
         canvas?.drawPath(wavePath, wavePaint)
         canvas?.restore()
 
         canvas?.save()
-        canvas?.translate(-offsetXFast, offsetY)
+        canvas?.translate(canvasOffsetXFast, canvasOffsetY)
         wavePaint.color = waveColor
         canvas?.drawPath(wavePath, wavePaint)
         canvas?.restore()
@@ -308,18 +274,69 @@ class WaveLoadingView : View{
     }
 
     override fun onDetachedFromWindow() {
-        valueAnim.cancel()
-        valueAnim.removeAllUpdateListeners()
+        waveValueAnim.cancel()
+        waveValueAnim.removeAllUpdateListeners()
         super.onDetachedFromWindow()
+    }
+    private fun drawShapePath(w: Int, h: Int) {
+        clipPath.reset()
+        when (shape) {
+            Shape.CIRCLE -> {
+                viewWidth = w
+                viewHeight = h
+                shapeCircle.centerX = viewWidth / 2f
+                shapeCircle.centerY = viewHeight / 2f
+                shapeCircle.circleRadius = if (viewHeight < viewWidth) viewHeight / 2f else viewWidth / 2f
+                clipPath.addCircle(
+                    shapeCircle.centerX, shapeCircle.centerY,
+                    shapeCircle.circleRadius,
+                    Path.Direction.CCW
+                )
+            }
+            Shape.SQUARE -> {
+                viewWidth = w
+                viewHeight = h
+                shapeRect.set(
+                    Math.abs(viewWidth - canvasWidth) / 2f,
+                    Math.abs(viewHeight - canvasHeight) / 2f,
+                    Math.abs(viewWidth - canvasWidth) / 2f + canvasWidth,
+                    Math.abs(viewHeight - canvasHeight) / 2f + canvasHeight
+                )
+                if (shapeCorner == 0f)
+                    clipPath?.addRect(shapeRect, Path.Direction.CCW)
+                else
+                    clipPath.addRoundRect(
+                        shapeRect,
+                        shapeCorner, shapeCorner,
+                        Path.Direction.CCW
+                    )
+            }
+            Shape.RECT -> {
+                shapeRect.set(
+                    0f,
+                    0f,
+                    canvasWidth.toFloat(),
+                    canvasHeight.toFloat()
+                )
+                if (shapeCorner == 0f)
+                    clipPath?.addRect(shapeRect, Path.Direction.CCW)
+                else
+                    clipPath.addRoundRect(
+                        shapeRect,
+                        shapeCorner, shapeCorner,
+                        Path.Direction.CCW
+                    )
+            }
+        }
     }
 
     private fun drawWavePath() {
         wavePath.reset()
-        val waveLen = viewWidth / 2
-        val waveHeight = viewHeight / 10
-        val startY = calculateYbyProcess()
-        wavePath.moveTo(-waveLen.toFloat(), startY)
-        val rang = -waveLen..viewWidth * 3 + waveLen
+        waveLen = viewWidth / 2
+        waveHeight = viewHeight / 10
+        waveStartY = calculateYbyProcess()
+        wavePath.moveTo(-viewWidth * 2f, waveStartY)
+        val rang = -viewWidth * 2..viewWidth + waveLen
         for (i in rang step waveLen) {
             wavePath.rQuadTo(
                 waveLen / 4f, waveHeight / 4f,
@@ -331,7 +348,7 @@ class WaveLoadingView : View{
             )
         }
         wavePath.rLineTo(0f, viewHeight.toFloat())
-        wavePath.rLineTo(-(viewWidth * 3f + 2f * waveLen), 0f)
+        wavePath.rLineTo(-(viewWidth * 3f + waveLen), 0f)
         wavePath.close()
     }
 
@@ -364,5 +381,6 @@ class WaveLoadingView : View{
     private enum class Shape{
         CIRCLE, SQUARE, RECT, NONE
     }
+
 
 }
