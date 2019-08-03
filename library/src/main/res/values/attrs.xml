@@ -21,6 +21,7 @@
         <attr name="wl_textSize" format="dimension"/>
         <attr name="wl_textStrokeWidth" format="dimension"/>
         <attr name="wl_textStrokeColor" format="color"/>
+        <attr name="wl_textWave" format="boolean"/>
 
     </declare-styleable>
 
