@@ -13,6 +13,8 @@
         <attr name="wl_shapeCorner" format="dimension"/>
         <attr name="wl_waveColor" format="color"/>
         <attr name="wl_waveBackgroundColor" format="color"/>
+        <attr name="wl_waveAmplitude" format="float"/>
+        <attr name="wl_waveVelocity" format="float"/>
         <attr name="wl_borderColor" format="color"/>
         <attr name="wl_borderWidth" format="dimension"/>
         <attr name="wl_process" format="integer"/>
@@ -22,6 +24,7 @@
         <attr name="wl_textStrokeWidth" format="dimension"/>
         <attr name="wl_textStrokeColor" format="color"/>
         <attr name="wl_textWave" format="boolean"/>
+        <attr name="wl_textBold" format="boolean"/>
 
     </declare-styleable>
 

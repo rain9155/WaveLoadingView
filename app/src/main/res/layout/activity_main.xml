@@ -7,11 +7,30 @@
     tools:context=".MainActivity">
 
     <com.example.library.WaveLoadingView
+        android:layout_width="150dp"
+        android:layout_height="150dp"
+        app:wl_text="Loading..."
+        app:wl_textColor="#00BCD4"
+        app:wl_shape="rect"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintRight_toLeftOf="@+id/gl"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintLeft_toLeftOf="parent"/>
+
+    <android.support.constraint.Guideline
+        android:id="@+id/gl"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintGuide_percent="0.5"/>
+
+    <me.itangqi.waveloadingview.WaveLoadingView
+        android:layout_width="150dp"
+        android:layout_height="150dp"
+        app:wlv_titleCenter="Loading..."
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintLeft_toLeftOf="parent"/>
+        app:layout_constraintLeft_toRightOf="@id/gl"/>
 
 </android.support.constraint.ConstraintLayout>
