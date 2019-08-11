@@ -6,6 +6,9 @@ import android.animation.ValueAnimator
 import android.content.Context
 import android.graphics.*
 import android.os.Build
+import android.support.annotation.ColorInt
+import android.support.annotation.FloatRange
+import android.support.annotation.IntRange
 import android.support.annotation.RequiresApi
 import android.support.v4.view.animation.LinearOutSlowInInterpolator
 import android.text.TextUtils
@@ -34,13 +37,11 @@ class WaveLoadingView : View{
          const val MAX_WAVE_VELOCITY = 1f
          const val DEFAULT_BORDER_COLOR = "#00BCD4"
          const val DEFAULT_BORDER_WIDTH = 0f
-         const val MAX_BORDER_WIDTH = 20f
          const val DEFAULT_PROCESS = 50
          const val MAX_PROCESS = 100
          const val DEFAULT_TEXT_COLOR = "#ffffffff"
          const val DEFAULT_TEXT_SIZE = 20f
          const val DEFAULT_TEXT_STROKE_WIDTH = 0f
-         const val MAX_TEXT_STROKE_WIDTH = 10f
          const val DEFAULT_TEXT_STROKE_COLOR = "#00BCD4"
      }
 
@@ -74,33 +75,100 @@ class WaveLoadingView : View{
         field = value
         invalidate()
     }
+
     var waveColor  = 0
-    set(value) {
+    set(@ColorInt value) {
         field = value
         invalidate()
     }
+
     var waveSecondColor  = 0
     var waveBackgroundColor = 0
+    set(@ColorInt value) {
+        field = value
+        invalidate()
+    }
+
+    var waveAmplitude = 0f
+    set(@FloatRange(from = 0.0, to = 0.9) value) {
+        Log.d(TAG, "setWaveAmplitude")
+        field = value
+        if (value < 0f) field = 0f
+        if (value > MAX_WAVE_AMPLITUDE) field = MAX_WAVE_AMPLITUDE
+        invalidate()
+    }
+
+    var waveVelocity = 0f
+    set(value) {
+        Log.d(TAG, "setWaveVelocity")
+        field = value
+        if (value < 0f) field = 0f
+        if (value > MAX_WAVE_VELOCITY) field = MAX_WAVE_VELOCITY
+        invalidate()
+    }
+
+    var borderColor = 0
+    set(@ColorInt value) {
+        field = value
+        invalidate()
+    }
+
+    var borderWidth = 0f
     set(value) {
         field = value
         invalidate()
     }
-    var waveAmplitude = 0f
-    set(value) {
-        checkWaveAmplitude(value)
+
+    var process = 0
+    set(@IntRange(from = 0, to = 100) value) {
+        Log.d(TAG, "setProcess")
+        field = value
+        if (value < 0) field = 0
+        if (value > MAX_PROCESS) field = MAX_PROCESS
         invalidate()
     }
-    var waveVelocity = 0f
-    var borderColor = 0
-    var borderWidth = 0f
-    var process = 0
+
     var text : String? = ""
+    set(value) {
+        field = value
+        invalidate()
+    }
+
     var textSize = 0f
+    set(value) {
+        field = value
+        invalidate()
+    }
+
     var textColor = 0
+    set(@ColorInt value) {
+        field = value
+        invalidate()
+    }
+
     var textStrokeWidth = 0f
+    set(value) {
+        field = value
+        invalidate()
+    }
+
     var textStrokeColor = 0
+    set(@ColorInt value) {
+        field = value
+        invalidate()
+    }
+
     var isTextWave = false
+    set(value) {
+        field = value
+        invalidate()
+    }
+
     var isTextBold = false
+    set(value) {
+        field = value
+        invalidate()
+    }
 
     constructor(context: Context?) : super(context){
         init(context, null)
@@ -132,22 +200,17 @@ class WaveLoadingView : View{
         waveSecondColor = adjustAlpha(waveColor, 0.7f)
         waveBackgroundColor = typeArray?.getColor(R.styleable.WaveLoadingView_wl_waveBackgroundColor, Color.parseColor(DEFAULT_WAVE_BACKGROUND_COLOR))
         waveAmplitude = typeArray?.getFloat(R.styleable.WaveLoadingView_wl_waveAmplitude, DEFAULT_WAVE_AMPLITUDE)
-        checkWaveAmplitude(waveAmplitude)
         waveVelocity = typeArray?.getFloat(R.styleable.WaveLoadingView_wl_waveVelocity, DEFAULT_WAVE_VELOCITY)
-        checkWaveVelocity(waveVelocity)
 
         borderColor = typeArray?.getColor(R.styleable.WaveLoadingView_wl_borderColor, Color.parseColor(DEFAULT_BORDER_COLOR))
         borderWidth = typeArray?.getDimension(R.styleable.WaveLoadingView_wl_borderWidth, dpTopx(DEFAULT_BORDER_WIDTH))
-        checkBorderWidth(borderWidth)
 
         process = typeArray?.getInteger(R.styleable.WaveLoadingView_wl_process, DEFAULT_PROCESS)
-        checkProcess(process)
 
         text = typeArray?.getString(R.styleable.WaveLoadingView_wl_text)
         if(TextUtils.isEmpty(text)) text = ""
         textSize = typeArray?.getDimension(R.styleable.WaveLoadingView_wl_textSize, spTopx(DEFAULT_TEXT_SIZE))
         textStrokeWidth = typeArray?.getDimension(R.styleable.WaveLoadingView_wl_textStrokeWidth, spTopx(DEFAULT_TEXT_STROKE_WIDTH))
-        checkTextStrokeWidth(textStrokeWidth)
         textStrokeColor = typeArray?.getColor(R.styleable.WaveLoadingView_wl_textStrokeColor, Color.parseColor(DEFAULT_TEXT_STROKE_COLOR))
         textColor = typeArray?.getColor(R.styleable.WaveLoadingView_wl_textColor, Color.parseColor(DEFAULT_TEXT_COLOR))
         isTextWave = typeArray?.getBoolean(R.styleable.WaveLoadingView_wl_textWave, false)
@@ -192,29 +255,6 @@ class WaveLoadingView : View{
             })
         }
         Log.d(TAG, "init()")
-    }
-
-    private fun checkTextStrokeWidth(width : Float) {
-        if (width > spTopx(MAX_TEXT_STROKE_WIDTH)) textStrokeWidth = spTopx(MAX_TEXT_STROKE_WIDTH)
-    }
-
-    private fun checkProcess(pro : Int) {
-        if (pro < 0) process = 0
-        if (pro > MAX_PROCESS) process = MAX_PROCESS
-    }
-
-    private fun checkBorderWidth(width : Float) {
-        if (width > dpTopx(MAX_BORDER_WIDTH)) borderWidth = dpTopx(MAX_BORDER_WIDTH)
-    }
-
-    private fun checkWaveVelocity(velocity : Float) {
-        if (velocity < 0f) waveVelocity = 0f
-        if (velocity > MAX_WAVE_VELOCITY) waveVelocity = MAX_WAVE_VELOCITY
-    }
-
-    private fun checkWaveAmplitude(amplitude : Float) {
-        if (amplitude < 0f) waveAmplitude = 0f
-        if (amplitude > MAX_WAVE_AMPLITUDE) waveAmplitude = MAX_WAVE_AMPLITUDE
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
@@ -485,12 +525,15 @@ class WaveLoadingView : View{
         }
     }
 
-    fun cancelLoading() = waveValueAnim.cancel()
+    fun cancelLoading(){
+        waveValueAnim.cancel()
+    }
 
-    @RequiresApi(Build.VERSION_CODES.KITKAT)
-    fun pauseLoading() = waveValueAnim.pause()
-
-    @RequiresApi(Build.VERSION_CODES.KITKAT)
-    fun resumeLoading() = waveValueAnim.resume()
+    fun pauseLoading(){
+        waveValueAnim.pause()
+    }
+    fun resumeLoading(){
+        waveValueAnim.resume()
+    }
 
 }

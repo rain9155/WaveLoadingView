@@ -7,30 +7,116 @@
     tools:context=".MainActivity">
 
     <com.example.library.WaveLoadingView
-        android:layout_width="150dp"
-        android:layout_height="150dp"
+        android:id="@+id/wl"
+        android:layout_width="200dp"
+        android:layout_height="200dp"
         app:wl_text="Loading..."
         app:wl_textColor="#00BCD4"
-        app:wl_shape="rect"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintRight_toLeftOf="@+id/gl"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintLeft_toLeftOf="parent"/>
-
-    <android.support.constraint.Guideline
-        android:id="@+id/gl"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        app:layout_constraintGuide_percent="0.5"/>
-
-    <me.itangqi.waveloadingview.WaveLoadingView
-        android:layout_width="150dp"
-        android:layout_height="150dp"
-        app:wlv_titleCenter="Loading..."
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintLeft_toRightOf="@id/gl"/>
+        app:layout_constraintLeft_toLeftOf="parent"/>
+
+    <TextView
+        android:id="@+id/tvAmplitude"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Amplitude:"
+        android:layout_marginTop="10dp"
+        style="@style/TextStyle"
+        app:layout_constraintTop_toBottomOf="@id/wl"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toLeftOf="@+id/sbAmplitude"/>
+
+    <SeekBar
+        android:id="@+id/sbAmplitude"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:max="90"
+        app:layout_constraintTop_toTopOf="@id/tvAmplitude"
+        app:layout_constraintLeft_toRightOf="@id/tvAmplitude"
+        app:layout_constraintBottom_toBottomOf="@id/tvAmplitude"
+        app:layout_constraintRight_toLeftOf="@+id/tvAmplitudeProcess"/>
+
+    <TextView
+        android:id="@+id/tvAmplitudeProcess"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="0"
+        android:layout_marginEnd="10dp"
+        style="@style/TextStyle"
+        android:textColor="@color/colorAccent"
+        app:layout_constraintTop_toTopOf="@id/tvAmplitude"
+        app:layout_constraintLeft_toRightOf="@id/sbAmplitude"
+        app:layout_constraintBottom_toBottomOf="@id/tvAmplitude"
+        app:layout_constraintRight_toRightOf="parent"/>
+
+    <TextView
+        android:id="@+id/tvVelocity"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="    Velocity:"
+        android:layout_marginTop="10dp"
+        style="@style/TextStyle"
+        app:layout_constraintTop_toBottomOf="@id/tvAmplitude"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toLeftOf="@+id/sbVelocity"/>
+
+    <SeekBar
+        android:id="@+id/sbVelocity"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:max="100"
+        app:layout_constraintTop_toTopOf="@id/tvVelocity"
+        app:layout_constraintLeft_toRightOf="@id/tvVelocity"
+        app:layout_constraintBottom_toBottomOf="@id/tvVelocity"
+        app:layout_constraintRight_toLeftOf="@+id/tvVelocityProcess"/>
+
+    <TextView
+        android:id="@+id/tvVelocityProcess"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="0"
+        android:layout_marginEnd="10dp"
+        style="@style/TextStyle"
+        android:textColor="@color/colorAccent"
+        app:layout_constraintTop_toTopOf="@id/tvVelocity"
+        app:layout_constraintLeft_toRightOf="@id/sbVelocity"
+        app:layout_constraintBottom_toBottomOf="@id/tvVelocity"
+        app:layout_constraintRight_toRightOf="parent"/>
+
+    <TextView
+        android:id="@+id/tvProcess"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="    Process:"
+        android:layout_marginTop="10dp"
+        style="@style/TextStyle"
+        app:layout_constraintTop_toBottomOf="@id/tvVelocityProcess"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toLeftOf="@+id/sbProcess"/>
+
+    <SeekBar
+        android:id="@+id/sbProcess"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:max="100"
+        app:layout_constraintTop_toTopOf="@id/tvProcess"
+        app:layout_constraintLeft_toRightOf="@id/tvProcess"
+        app:layout_constraintBottom_toBottomOf="@id/tvProcess"
+        app:layout_constraintRight_toLeftOf="@+id/tvProcesses"/>
+
+    <TextView
+        android:id="@+id/tvProcesses"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="0"
+        style="@style/TextStyle"
+        android:layout_marginEnd="10dp"
+        android:textColor="@color/colorAccent"
+        app:layout_constraintTop_toTopOf="@id/sbProcess"
+        app:layout_constraintLeft_toRightOf="@id/sbProcess"
+        app:layout_constraintBottom_toBottomOf="@id/sbProcess"
+        app:layout_constraintRight_toRightOf="parent"/>
 
 </android.support.constraint.ConstraintLayout>
