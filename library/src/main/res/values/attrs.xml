@@ -10,6 +10,14 @@
             <enum name="none" value="3"/>
         </attr>
 
+
+        <attr name="wl_textLocation" format="enum">
+            <enum name="flow" value="0"/>
+            <enum name="center" value="1"/>
+            <enum name="top" value="2"/>
+            <enum name="bottom" value="3"/>
+        </attr>
+
         <attr name="wl_shapeCorner" format="dimension"/>
         <attr name="wl_waveColor" format="color"/>
         <attr name="wl_waveBackgroundColor" format="color"/>

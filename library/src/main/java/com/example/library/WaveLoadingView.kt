@@ -18,7 +18,8 @@ import android.util.TypedValue
 import android.view.View
 
 /**
- * 用贝塞尔曲线绘制loading图: init - > onMeasure -> onSizeChange -> onLayout -> onGlobalLayout() -> onDraw
+ * 用贝塞尔曲线绘制loading图:
+ * init - > onAttachedToWindow -> onMeasure -> onSizeChange -> onLayout -> onGlobalLayout -> onDraw
  * Created by 陈健宇 at 2019/7/27
  */
 class WaveLoadingView : View{
@@ -39,23 +40,26 @@ class WaveLoadingView : View{
          const val DEFAULT_BORDER_WIDTH = 0f
          const val DEFAULT_PROCESS = 50
          const val MAX_PROCESS = 100
-         const val DEFAULT_TEXT_COLOR = "#ffffffff"
+         const val DEFAULT_TEXT_LOCATION = 0
+         const val DEFAULT_TEXT_COLOR = "#00BCD4"
          const val DEFAULT_TEXT_SIZE = 20f
          const val DEFAULT_TEXT_STROKE_WIDTH = 0f
          const val DEFAULT_TEXT_STROKE_COLOR = "#00BCD4"
      }
 
-    private lateinit var wavePaint: Paint
-    private lateinit var borderPaint: Paint
-    private lateinit var textPaint: Paint
-    private lateinit var waveValueAnim : ValueAnimator
+    private val waveValueAnim = ValueAnimator.ofFloat(0f, 1f, 0f)
+    private val wavePaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val borderPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val textPaint =  Paint(Paint.ANTI_ALIAS_FLAG)
     private val wavePath = Path()
     private val clipPath = Path()
     private val textPath = Path()
     private var animProcess = 0f
     private var textWaveDirectionReverse = false
-    private var canvasOffsetXFast = 0f
-    private var canvasOffsetXSlow = 0f
+    private var canvasFastOffsetX = 0f
+    private var canvasSlowOffsetX = 0f
+    private var fastWaveOffsetX = 0f
+    private var slowWaveOffsetX = 0f
     private var canvasOffsetY = 0f
     private var canvasWidth = 0
     private var canvasHeight = 0
@@ -64,16 +68,23 @@ class WaveLoadingView : View{
     private var waveLen = 0
     private var waveHeight = 0
     private var waveStartY = 0f
-    private val shapeRect = RectF()
-    private val shapeCircle = Circle()
-    private var shape = Shape.CIRCLE
     private var textWidth = 0
     private var textHeight = 0
+    private var textStartX = 0f
+    private var textStartY = 0f
+    private val shapeRect = RectF()
+    private val shapeCircle = Circle()
+
+    var shape = Shape.CIRCLE
+    set(value) {
+        field = value
+        requestLayout()
+    }
 
     var shapeCorner = 0f
     set(value) {
         field = value
-        invalidate()
+        requestLayout()
     }
 
     var waveColor  = 0
@@ -82,7 +93,6 @@ class WaveLoadingView : View{
         invalidate()
     }
 
-    var waveSecondColor  = 0
     var waveBackgroundColor = 0
     set(@ColorInt value) {
         field = value
@@ -91,20 +101,19 @@ class WaveLoadingView : View{
 
     var waveAmplitude = 0f
     set(@FloatRange(from = 0.0, to = 0.9) value) {
-        Log.d(TAG, "setWaveAmplitude")
         field = value
         if (value < 0f) field = 0f
         if (value > MAX_WAVE_AMPLITUDE) field = MAX_WAVE_AMPLITUDE
-        invalidate()
+        requestLayout()
     }
 
     var waveVelocity = 0f
     set(value) {
-        Log.d(TAG, "setWaveVelocity")
         field = value
         if (value < 0f) field = 0f
         if (value > MAX_WAVE_VELOCITY) field = MAX_WAVE_VELOCITY
-        invalidate()
+        fastWaveOffsetX= field * WAVE_OFFSET
+        slowWaveOffsetX = field * WAVE_OFFSET / 2
     }
 
     var borderColor = 0
@@ -121,11 +130,16 @@ class WaveLoadingView : View{
 
     var process = 0
     set(@IntRange(from = 0, to = 100) value) {
-        Log.d(TAG, "setProcess")
         field = value
         if (value < 0) field = 0
         if (value > MAX_PROCESS) field = MAX_PROCESS
-        invalidate()
+        requestLayout()
+    }
+
+    var textLocation = Location.FLOW
+    set(value) {
+        field = value
+        requestLayout()
     }
 
     var text : String? = ""
@@ -137,7 +151,7 @@ class WaveLoadingView : View{
     var textSize = 0f
     set(value) {
         field = value
-        invalidate()
+        requestLayout()
     }
 
     var textColor = 0
@@ -161,6 +175,11 @@ class WaveLoadingView : View{
     var isTextWave = false
     set(value) {
         field = value
+        if(field) waveValueAnim.addListener(object : AnimatorListenerAdapter(){
+            override fun onAnimationRepeat(animation: Animator?) {
+                textWaveDirectionReverse = !textWaveDirectionReverse
+            }
+        })
         invalidate()
     }
 
@@ -185,6 +204,7 @@ class WaveLoadingView : View{
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
             background = null
         }
+
         //init Attrs
         val typeArray = context?.obtainStyledAttributes(attrs, R.styleable.WaveLoadingView)
 
@@ -197,7 +217,6 @@ class WaveLoadingView : View{
         shapeCorner = typeArray?.getDimension(R.styleable.WaveLoadingView_wl_shapeCorner, DEFAULT_SHAPE_CORNER)!!
 
         waveColor = typeArray?.getColor(R.styleable.WaveLoadingView_wl_waveColor, Color.parseColor(DEFAULT_WAVE_COLOR))
-        waveSecondColor = adjustAlpha(waveColor, 0.7f)
         waveBackgroundColor = typeArray?.getColor(R.styleable.WaveLoadingView_wl_waveBackgroundColor, Color.parseColor(DEFAULT_WAVE_BACKGROUND_COLOR))
         waveAmplitude = typeArray?.getFloat(R.styleable.WaveLoadingView_wl_waveAmplitude, DEFAULT_WAVE_AMPLITUDE)
         waveVelocity = typeArray?.getFloat(R.styleable.WaveLoadingView_wl_waveVelocity, DEFAULT_WAVE_VELOCITY)
@@ -207,6 +226,12 @@ class WaveLoadingView : View{
 
         process = typeArray?.getInteger(R.styleable.WaveLoadingView_wl_process, DEFAULT_PROCESS)
 
+        textLocation = when(typeArray?.getInteger(R.styleable.WaveLoadingView_wl_textLocation, DEFAULT_TEXT_LOCATION)){
+            0 -> Location.FLOW
+            1 -> Location.CENTER
+            2 -> Location.TOP
+            else -> Location.BOTTOM
+        }
         text = typeArray?.getString(R.styleable.WaveLoadingView_wl_text)
         if(TextUtils.isEmpty(text)) text = ""
         textSize = typeArray?.getDimension(R.styleable.WaveLoadingView_wl_textSize, spTopx(DEFAULT_TEXT_SIZE))
@@ -218,43 +243,23 @@ class WaveLoadingView : View{
 
         typeArray?.recycle()
 
-        //init Paint
-        wavePaint = Paint(Paint.ANTI_ALIAS_FLAG)
-        wavePaint.style = Paint.Style.FILL_AND_STROKE
-
-        borderPaint = Paint(Paint.ANTI_ALIAS_FLAG)
-        borderPaint.style = Paint.Style.STROKE
-
-        textPaint = Paint(Paint.ANTI_ALIAS_FLAG)
-        textPaint.textSize = textSize
-        textPaint.isFakeBoldText = isTextBold
-        textWidth = textPaint.measureText(text).toInt()
-        val textRect = Rect()
-        textPaint.getTextBounds(text, 0, text!!.length, textRect)
-        textHeight = textRect.height()
-
         //init Anim
-        val fastWaveOffset = waveVelocity * WAVE_OFFSET
-        val slowWaveOffset = waveVelocity * WAVE_OFFSET / 2
-        waveValueAnim = ValueAnimator.ofFloat(0f, 1f, 0f)
+        fastWaveOffsetX= waveVelocity * WAVE_OFFSET
+        slowWaveOffsetX = waveVelocity * WAVE_OFFSET / 2
         waveValueAnim.apply {
             duration = ANIM_TIME
             LinearOutSlowInInterpolator()
             repeatCount = ValueAnimator.INFINITE
+            repeatMode = ValueAnimator.RESTART
             addUpdateListener{ animation ->
                 animProcess = animation.animatedValue as Float
-                canvasOffsetXFast = (canvasOffsetXFast + fastWaveOffset) % canvasWidth
-                canvasOffsetXSlow = (canvasOffsetXSlow + slowWaveOffset) % canvasWidth
-                postInvalidate()
+                canvasFastOffsetX = (canvasFastOffsetX + fastWaveOffsetX) % canvasWidth
+                canvasSlowOffsetX = (canvasSlowOffsetX + slowWaveOffsetX) % canvasWidth
+                if(canvasOffsetY <  0) canvasOffsetY += WAVE_OFFSET  else canvasOffsetY = 0f
+                invalidate()
             }
-
-            if(isTextWave) addListener(object : AnimatorListenerAdapter(){
-                override fun onAnimationRepeat(animation: Animator?) {
-                    textWaveDirectionReverse = !textWaveDirectionReverse
-                }
-            })
         }
-        Log.d(TAG, "init()")
+
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
@@ -268,155 +273,61 @@ class WaveLoadingView : View{
                 super.onMeasure(widthMeasureSpec, heightMeasureSpec)
             }
         }
-        Log.d(TAG, "onMeasure(), measureHeight = $measuredHeight, measureWidth = $measuredWidth")
     }
 
-    /**
-     * ConstraintLayout布局会让setMeasuredDimension()失效,所以导致 measuredHeight 和 h 不一样
-     * 所以计算圆形和正方形时要注意居中
-     */
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         canvasWidth = measuredWidth
         canvasHeight = measuredHeight
         viewWidth = canvasWidth
         viewHeight = canvasHeight
-        drawShapePath(w, h)
-        drawWavePath()
-        if(!isTextWave){
-            textPath.reset()
-            textPath.moveTo((viewWidth - textWidth) / 2f, waveStartY + textHeight / 2)
-            textPath.rLineTo(textWidth.toFloat(), 0f)
-        }
-        Log.d(TAG, "onSizeChanged(), w = $w, h = $h")
+        canvasOffsetY = -canvasHeight / 2f
+    }
+
+    /**
+     * ConstraintLayout布局会让setMeasuredDimension()失效,所以导致 measuredHeight 和 height 不一样, 宽同理
+     * 所以计算圆形和正方形时要注意居中
+     */
+    override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
+        super.onLayout(changed, left, top, right, bottom)
+        preDrawShapePath(width, height)
+        preDrawWavePath()
+        preDrawTextPath()
     }
 
     override fun onDraw(canvas: Canvas?) {
-        ClipShap(canvas)
+        clipCanvasShape(canvas)
         drawWave(canvas)
         drawBorder(canvas)
         drawText(canvas)
         startLoading()
     }
 
-    /**
-     * 绘制文字
-     */
-    private fun drawText(canvas: Canvas?) {
-        if (TextUtils.isEmpty(text)) return
-
-        if(isTextWave){
-            textPath.reset()
-            textPath.moveTo((viewWidth - textWidth) / 2f, waveStartY + textHeight / 2)
-            if(!textWaveDirectionReverse){
-                textPath.rQuadTo(
-                    textWidth / 4f, -textHeight * animProcess / 2,
-                    textWidth / 2f, 0f
-                )
-                textPath.rQuadTo(
-                    textWidth / 4f, textHeight * animProcess / 2,
-                    textWidth / 2f, 0f
-                )
-            }else{
-                textPath.rQuadTo(
-                    textWidth / 4f, textHeight * animProcess / 2,
-                    textWidth / 2f, 0f
-                )
-                textPath.rQuadTo(
-                    textWidth / 4f, -textHeight * animProcess / 2,
-                    textWidth / 2f, 0f
-                )
-            }
-        }
-
-        if(textStrokeWidth != 0f){
-            textPaint.style = Paint.Style.STROKE
-            textPaint.color = textStrokeColor
-            textPaint.strokeWidth = textStrokeWidth
-            canvas?.drawTextOnPath(text, textPath, 0f, 0f, textPaint)
-        }
-
-        textPaint.style = Paint.Style.FILL
-        textPaint.color = textColor
-        canvas?.drawTextOnPath(text, textPath, 0f, 0f, textPaint)
-    }
-
-    /**
-     * 绘制边框
-     */
-    private fun drawBorder(canvas: Canvas?) {
-        if(borderWidth == 0f) return
-
-        borderPaint.color = borderColor
-        borderPaint.strokeWidth = borderWidth
-        when (shape) {
-            Shape.CIRCLE -> {
-                canvas?.drawCircle(
-                    shapeCircle.centerX, shapeCircle.centerY,
-                    shapeCircle.circleRadius,
-                    borderPaint
-                )
-            }
-            Shape.SQUARE, Shape.RECT -> {
-                if (shapeCorner == 0f)
-                    canvas?.drawRect(shapeRect, borderPaint)
-                else
-                    canvas?.drawRoundRect(
-                        shapeRect,
-                        shapeCorner, shapeCorner,
-                        borderPaint
-                    )
-            }
-        }
-    }
-
-    /**
-     * 绘制波浪
-     */
-    private fun drawWave(canvas: Canvas?) {
-        canvas?.save()
-        canvas?.translate(canvasOffsetXSlow, canvasOffsetY)
-        wavePaint.color = waveSecondColor
-        canvas?.drawPath(wavePath, wavePaint)
-        canvas?.restore()
-
-        canvas?.save()
-        canvas?.translate(canvasOffsetXFast, canvasOffsetY)
-        wavePaint.color = waveColor
-        canvas?.drawPath(wavePath, wavePaint)
-        canvas?.restore()
-    }
-
-    /**
-     * 裁剪画布形状
-     */
-    private fun ClipShap(canvas: Canvas?) {
-        if (shape != Shape.NONE) canvas?.clipPath(clipPath)
-        canvas?.drawColor(waveBackgroundColor)
-    }
-
-    override fun onWindowVisibilityChanged(visibility: Int) {
-        super.onWindowVisibilityChanged(visibility)
-        Log.d(TAG, "onWindowVisibilityChanged()")
-    }
-
-    override fun onWindowFocusChanged(hasWindowFocus: Boolean) {
-        super.onWindowFocusChanged(hasWindowFocus)
-        Log.d(TAG, "onWindowFocusChanged()")
-    }
-
     override fun onDetachedFromWindow() {
-        Log.d(TAG, "onDetachedFromWindow()")
-        waveValueAnim.cancel()
+        cancelLoading()
         waveValueAnim.removeAllUpdateListeners()
         super.onDetachedFromWindow()
     }
 
-    override fun onAttachedToWindow() {
-        Log.d(TAG, "onAttachedToWindow()")
-        super.onAttachedToWindow()
+    private fun preDrawTextPath() {
+        textPaint.textSize = textSize
+        textWidth = textPaint.measureText(text).toInt()
+        val textRect = Rect()
+        textPaint.getTextBounds(text, 0, text!!.length, textRect)
+        textHeight = textRect.height()
+
+        textStartX = (viewWidth - textWidth) / 2f
+        textStartY = when(textLocation){
+            Location.FLOW -> waveStartY + textHeight / 2f
+            Location.TOP -> calculateRelativeY() + textHeight
+            Location.CENTER -> (viewHeight + textHeight) / 2f
+            else -> calculateRelativeY() + canvasHeight - textHeight
+        }
+        textPath.reset()
+        textPath.moveTo(textStartX, textStartY)
+        textPath.rLineTo(textWidth.toFloat(), 0f)
     }
 
-    private fun drawShapePath(w: Int, h: Int) {
+    private fun preDrawShapePath(w: Int, h: Int) {
         clipPath.reset()
         when (shape) {
             Shape.CIRCLE -> {
@@ -468,13 +379,13 @@ class WaveLoadingView : View{
         }
     }
 
-    private fun drawWavePath() {
+    private fun preDrawWavePath() {
         wavePath.reset()
-        waveLen = viewWidth
-        waveHeight = (waveAmplitude * viewHeight).toInt()
-        waveStartY = calculateYbyProcess()
-        wavePath.moveTo(-viewWidth * 2f, waveStartY)
-        val rang = -viewWidth * 2..viewWidth
+        waveLen = canvasWidth
+        waveHeight = (waveAmplitude * canvasHeight).toInt()
+        waveStartY = calculateWaveStartYbyProcess()
+        wavePath.moveTo(-canvasWidth * 2f, waveStartY)
+        val rang = -canvasWidth * 2..canvasWidth
         for (i in rang step waveLen) {
             wavePath.rQuadTo(
                 waveLen / 4f, waveHeight / 2f,
@@ -485,17 +396,115 @@ class WaveLoadingView : View{
                 waveLen / 2f, 0f
             )
         }
-        wavePath.rLineTo(0f, viewHeight.toFloat())
-        wavePath.rLineTo(-viewWidth * 3f, 0f)
+        wavePath.rLineTo(0f, canvasHeight.toFloat())
+        wavePath.rLineTo(-canvasWidth * 3f, 0f)
         wavePath.close()
     }
 
-    private fun calculateYbyProcess(): Float {
+    private fun drawText(canvas: Canvas?) {
+        if (TextUtils.isEmpty(text)) return
+
+        textPaint.isFakeBoldText = isTextBold
+
+        if(isTextWave && textLocation == Location.FLOW){
+            textPath.reset()
+            textPath.moveTo(textStartX, textStartY)
+            if(!textWaveDirectionReverse){
+                textPath.rQuadTo(
+                    textWidth / 4f, -textHeight * animProcess / 2,
+                    textWidth / 2f, 0f
+                )
+                textPath.rQuadTo(
+                    textWidth / 4f, textHeight * animProcess / 2,
+                    textWidth / 2f, 0f
+                )
+            }else{
+                textPath.rQuadTo(
+                    textWidth / 4f, textHeight * animProcess / 2,
+                    textWidth / 2f, 0f
+                )
+                textPath.rQuadTo(
+                    textWidth / 4f, -textHeight * animProcess / 2,
+                    textWidth / 2f, 0f
+                )
+            }
+        }
+
+        if(textStrokeWidth != 0f){
+            textPaint.style = Paint.Style.STROKE
+            textPaint.color = textStrokeColor
+            textPaint.strokeWidth = textStrokeWidth
+            canvas?.drawTextOnPath(text, textPath, 0f, 0f, textPaint)
+        }
+
+        textPaint.style = Paint.Style.FILL
+        textPaint.color = textColor
+        canvas?.drawTextOnPath(text, textPath, 0f, 0f, textPaint)
+    }
+
+    private fun drawBorder(canvas: Canvas?) {
+        if(borderWidth == 0f) return
+
+        borderPaint.style = Paint.Style.STROKE
+        borderPaint.color = borderColor
+        borderPaint.strokeWidth = borderWidth
+
+        when (shape) {
+            Shape.CIRCLE -> {
+                canvas?.drawCircle(
+                    shapeCircle.centerX, shapeCircle.centerY,
+                    shapeCircle.circleRadius,
+                    borderPaint
+                )
+            }
+            Shape.SQUARE, Shape.RECT -> {
+                if (shapeCorner == 0f)
+                    canvas?.drawRect(shapeRect, borderPaint)
+                else
+                    canvas?.drawRoundRect(
+                        shapeRect,
+                        shapeCorner, shapeCorner,
+                        borderPaint
+                    )
+            }
+        }
+    }
+
+    private fun drawWave(canvas: Canvas?) {
+        wavePaint.style = Paint.Style.FILL_AND_STROKE
+
+        canvas?.save()
+        canvas?.save()
+
+        canvas?.translate(canvasSlowOffsetX, canvasOffsetY)
+        wavePaint.color = adjustAlpha(waveColor, 0.7f)
+        canvas?.drawPath(wavePath, wavePaint)
+        canvas?.restore()
+
+        canvas?.translate(canvasFastOffsetX, canvasOffsetY)
+        wavePaint.color = waveColor
+        canvas?.drawPath(wavePath, wavePaint)
+        canvas?.restore()
+    }
+
+    private fun clipCanvasShape(canvas: Canvas?) {
+        if (shape != Shape.NONE) canvas?.clipPath(clipPath)
+        canvas?.drawColor(waveBackgroundColor)
+    }
+
+    private fun calculateWaveStartYbyProcess(): Float {
         val valueProcess = process / 100f
         return  if (viewHeight == canvasHeight)
-                    (1 - valueProcess) * canvasHeight
-                else
-                     Math.abs(viewHeight - canvasHeight) / 2f + (1 - valueProcess) * canvasHeight
+            (1 - valueProcess) * canvasHeight
+        else
+             Math.abs(viewHeight - canvasHeight) / 2f + (1 - valueProcess) * canvasHeight
+    }
+
+    private fun calculateRelativeY(): Float {
+        return if (viewHeight == canvasHeight)
+                0f
+             else
+                Math.abs(viewHeight - canvasHeight) / 2f
     }
 
     private fun adjustAlpha(color : Int?,  factor : Float?) : Int{
@@ -515,8 +524,12 @@ class WaveLoadingView : View{
         var circleRadius = 0f
     }
 
-    private enum class Shape{
+    enum class Shape{
         CIRCLE, SQUARE, RECT, NONE
+    }
+
+    enum class Location{
+       FLOW, TOP, CENTER, BOTTOM
     }
 
     fun startLoading(){
@@ -532,6 +545,7 @@ class WaveLoadingView : View{
     fun pauseLoading(){
         waveValueAnim.pause()
     }
+
     fun resumeLoading(){
         waveValueAnim.resume()
     }
