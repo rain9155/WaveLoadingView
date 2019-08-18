@@ -25,7 +25,7 @@ import android.view.View
 class WaveLoadingView : View{
 
      companion object Config{
-         val TAG = WaveLoadingView::class.java.simpleName!!
+         val TAG = WaveLoadingView::class.java.simpleName
          const val ANIM_TIME = 500L
          const val WAVE_OFFSET = 20
          const val DEFAULT_SHAPE = 0
@@ -65,8 +65,6 @@ class WaveLoadingView : View{
     private var canvasHeight = 0
     private var viewWidth = 0
     private var viewHeight = 0
-    private var waveLen = 0
-    private var waveHeight = 0
     private var waveStartY = 0f
     private var textWidth = 0
     private var textHeight = 0
@@ -100,7 +98,7 @@ class WaveLoadingView : View{
     }
 
     var waveAmplitude = 0f
-    set(@FloatRange(from = 0.0, to = 0.9) value) {
+    set(value) {
         field = value
         if (value < 0f) field = 0f
         if (value > MAX_WAVE_AMPLITUDE) field = MAX_WAVE_AMPLITUDE
@@ -129,7 +127,7 @@ class WaveLoadingView : View{
     }
 
     var process = 0
-    set(@IntRange(from = 0, to = 100) value) {
+    set(value) {
         field = value
         if (value < 0) field = 0
         if (value > MAX_PROCESS) field = MAX_PROCESS
@@ -381,8 +379,8 @@ class WaveLoadingView : View{
 
     private fun preDrawWavePath() {
         wavePath.reset()
-        waveLen = canvasWidth
-        waveHeight = (waveAmplitude * canvasHeight).toInt()
+        val waveLen = canvasWidth
+        val waveHeight = (waveAmplitude * canvasHeight).toInt()
         waveStartY = calculateWaveStartYbyProcess()
         wavePath.moveTo(-canvasWidth * 2f, waveStartY)
         val rang = -canvasWidth * 2..canvasWidth
@@ -543,11 +541,15 @@ class WaveLoadingView : View{
     }
 
     fun pauseLoading(){
-        waveValueAnim.pause()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+            waveValueAnim.pause()
+        }
     }
 
     fun resumeLoading(){
-        waveValueAnim.resume()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+            waveValueAnim.resume()
+        }
     }
 
 }

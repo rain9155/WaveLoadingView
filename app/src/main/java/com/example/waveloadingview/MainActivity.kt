@@ -1,5 +1,7 @@
 package com.example.waveloadingview
 
+import android.graphics.Color
+import android.os.Build
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
 import android.view.View
@@ -39,7 +41,6 @@ class MainActivity : AppCompatActivity(), SeekBar.OnSeekBarChangeListener{
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-
         sbAmplitude.setOnSeekBarChangeListener(this)
         sbVelocity.setOnSeekBarChangeListener(this)
         sbProcess.setOnSeekBarChangeListener(this)
@@ -47,7 +48,6 @@ class MainActivity : AppCompatActivity(), SeekBar.OnSeekBarChangeListener{
         sbAmplitude.progress = (wl.waveAmplitude * 100).toInt()
         sbVelocity.progress = (wl.waveVelocity * 100).toInt()
         sbProcess.progress = wl.process
-
         btnPauseAnim.setOnClickListener {
             wl.pauseLoading()
         }
@@ -61,7 +61,7 @@ class MainActivity : AppCompatActivity(), SeekBar.OnSeekBarChangeListener{
             wl.startLoading()
         }
 
-        wl.visibility = View.INVISIBLE
+    
 
     }
 }

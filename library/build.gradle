@@ -30,3 +30,15 @@ dependencies {
 repositories {
     mavenCentral()
 }
+
+apply plugin: 'com.novoda.bintray-release'
+//添加
+publish {
+    repoName = 'jianyu'
+    userOrg = "rain9155"
+    groupId = "com.jianyu"
+    artifactId = 'waveloadingview'
+    publishVersion = "1.0.0"
+    desc = "a wave loading view"
+    website = "https://github.com/rain9155/WaveLoadingView"
+}
