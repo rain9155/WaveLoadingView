@@ -1,14 +1,12 @@
 # WaveLoadingView
-### 一个类似于波浪效果的Loading控件，如有问题欢迎issue
+### 一个类似于波浪效果的Loading控件，如有问题欢迎[issue](https://github.com/rain9155/WaveLoadingView/issues)
 
 ### 1、Pre
 
-不再满足如Android原生的加载中控件，利用贝塞尔曲线原理，自己动手实现的一个加载中控件，实现原理查看
+不再满足如Android原生的加载中控件，利用贝塞尔曲线原理，自己动手实现的一个加载中控件，实现原理查看，实现效果如下**Preview**，
 
 ### 2、Preview
-
-
-
+![waveloading1.gif](/screenshots/waveloading1.gif)
 ### 3、How to install？
 
 在app目录下的build.gradle添加依赖，如下：
@@ -81,4 +79,19 @@ wl.textLocation = WaveLoadingView.Location.CENTER
 |      wl_textWave       |                   文字是否跟随波浪上下浮动                   |
 
 
+## License
+```
+Copyright 2019 rain9155
 
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License a
+
+          http://www.apache.org/licenses/LICENSE-2.0 
+          
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+```
