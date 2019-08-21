@@ -253,7 +253,7 @@ class WaveLoadingView : View{
                 animProcess = animation.animatedValue as Float
                 canvasFastOffsetX = (canvasFastOffsetX + fastWaveOffsetX) % canvasWidth
                 canvasSlowOffsetX = (canvasSlowOffsetX + slowWaveOffsetX) % canvasWidth
-                if(canvasOffsetY <  0) canvasOffsetY += WAVE_OFFSET  else canvasOffsetY = 0f
+                if(canvasOffsetY < 0) canvasOffsetY += WAVE_OFFSET  else  canvasOffsetY = 0f
                 invalidate()
             }
         }
@@ -278,7 +278,7 @@ class WaveLoadingView : View{
         canvasHeight = measuredHeight
         viewWidth = canvasWidth
         viewHeight = canvasHeight
-        canvasOffsetY = -canvasHeight / 2f
+        canvasOffsetY = -(calculateWaveStartYbyProcess() - calculateRelativeY())
     }
 
     /**
