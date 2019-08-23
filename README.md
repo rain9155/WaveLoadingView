@@ -7,18 +7,22 @@
 
 ### 2、Preview
 ![waveloading1.gif](/screenshots/waveloading1.gif)
-### 3、How to install？
+### 3、Download
+
+[地址](https://github.com/rain9155/WaveLoadingView/releases/download/1.0.0/app-release-unsigned.apk)
+
+### 4、How to install？
 
 在app目录下的build.gradle添加依赖，如下：
 
 ```
 dependencies {
-    implementation 'com.jianyu:waveloadingview:1.0.0'
+    implementation 'com.jianyu:waveloadingview:1.0.1'
 }
 
 ```
 
-### 4、How to use？
+### 5、How to use？
 
 在布局中直接引用，如下：
 
@@ -55,6 +59,17 @@ wl.text = "rain"
 wl.textLocation = WaveLoadingView.Location.CENTER
 //...
 ```
+
+在有需要时(如Activity在后台)，你可以通过以下方法暂停、恢复、取消、启动loading动画，如下：
+
+```kotlin
+wl.pauseLoading()//暂停loading
+wl.resumeLoading()//恢复loading
+wl.cancelLoading()//取消loading
+wl.startLoading()//启动loading
+```
+
+
 
 #### Attrs
 

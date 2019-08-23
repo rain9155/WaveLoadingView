@@ -469,6 +469,7 @@ class WaveLoadingView : View{
     }
 
     private fun drawWave(canvas: Canvas?) {
+
         wavePaint.style = Paint.Style.FILL_AND_STROKE
 
         canvas?.save()
