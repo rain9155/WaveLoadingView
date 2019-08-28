@@ -6,10 +6,14 @@
 不再满足如Android原生的加载中控件，利用贝塞尔曲线原理，自己动手实现的一个加载中控件，实现原理查看[ 使用贝塞尔曲线实现WaveLoadingView](https://juejin.im/post/5d5ffb186fb9a06af2387dd9)，实现效果如下**Preview**，
 
 ### 2、Preview
+
 ![waveloading1.gif](/screenshots/waveloading1.gif)
+
 ### 3、Download
 
 [地址](https://github.com/rain9155/WaveLoadingView/releases/download/1.0.0/app-release-unsigned.apk)
+
+![qr](/screenshots/QR.png)
 
 ### 4、How to install？
 
