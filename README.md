@@ -1,4 +1,5 @@
 # WaveLoadingView
+[ ![Download](https://api.bintray.com/packages/rain9155/jianyu/waveloadingview/images/download.svg) ](https://bintray.com/rain9155/jianyu/waveloadingview/_latestVersion)
 ### 一个类似于波浪效果的Loading控件，如有问题欢迎[issue](https://github.com/rain9155/WaveLoadingView/issues)
 
 ### 1、Pre
