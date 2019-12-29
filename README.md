@@ -1,9 +1,10 @@
 # WaveLoadingView
-### 一个类似于波浪效果的Loading控件，如有问题欢迎[issue](https://github.com/rain9155/WaveLoadingView/issues)
+[ ![Download](https://api.bintray.com/packages/rain9155/jianyu/waveloadingview/images/download.svg) ](https://bintray.com/rain9155/jianyu/waveloadingview/_latestVersion)
+### 一个波浪效果的Loading控件，如有问题欢迎[issue](https://github.com/rain9155/WaveLoadingView/issues)，实现步骤请查看[ 使用贝塞尔曲线实现WaveLoadingView](https://juejin.im/post/5d5ffb186fb9a06af2387dd9)这篇文章.
 
 ### 1、Pre
 
-不再满足如Android原生的加载中控件，利用贝塞尔曲线原理，自己动手实现的一个加载中控件，实现原理查看[ 使用贝塞尔曲线实现WaveLoadingView](https://juejin.im/post/5d5ffb186fb9a06af2387dd9)，实现效果如下**Preview**，
+不再满足如Android原生的加载中控件，利用贝塞尔曲线原理，自己动手实现的一个加载中控件，实现效果如下.
 
 ### 2、Preview
 
