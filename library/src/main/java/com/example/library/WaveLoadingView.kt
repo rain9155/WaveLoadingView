@@ -6,16 +6,17 @@ import android.animation.ValueAnimator
 import android.content.Context
 import android.graphics.*
 import android.os.Build
-import android.support.annotation.ColorInt
-import android.support.annotation.FloatRange
-import android.support.annotation.IntRange
-import android.support.annotation.RequiresApi
-import android.support.v4.view.animation.LinearOutSlowInInterpolator
+import androidx.annotation.ColorInt
+import androidx.annotation.FloatRange
+import androidx.annotation.IntRange
+import androidx.annotation.RequiresApi
+import androidx.interpolator.view.animation.LinearOutSlowInInterpolator
 import android.text.TextUtils
 import android.util.AttributeSet
 import android.util.Log
 import android.util.TypedValue
 import android.view.View
+import kotlin.math.roundToInt
 
 /**
  * 用贝塞尔曲线绘制loading图:
@@ -140,7 +141,7 @@ class WaveLoadingView : View{
         requestLayout()
     }
 
-    var text : String? = ""
+    var text : String = ""
     set(value) {
         field = value
         invalidate()
@@ -230,7 +231,7 @@ class WaveLoadingView : View{
             2 -> Location.TOP
             else -> Location.BOTTOM
         }
-        text = typeArray?.getString(R.styleable.WaveLoadingView_wl_text)
+        text = typeArray?.getString(R.styleable.WaveLoadingView_wl_text) ?: ""
         if(TextUtils.isEmpty(text)) text = ""
         textSize = typeArray?.getDimension(R.styleable.WaveLoadingView_wl_textSize, spTopx(DEFAULT_TEXT_SIZE))
         textStrokeWidth = typeArray?.getDimension(R.styleable.WaveLoadingView_wl_textStrokeWidth, spTopx(DEFAULT_TEXT_STROKE_WIDTH))
@@ -310,7 +311,7 @@ class WaveLoadingView : View{
         textPaint.textSize = textSize
         textWidth = textPaint.measureText(text).toInt()
         val textRect = Rect()
-        textPaint.getTextBounds(text, 0, text!!.length, textRect)
+        textPaint.getTextBounds(text, 0, text.length, textRect)
         textHeight = textRect.height()
 
         textStartX = (viewWidth - textWidth) / 2f
@@ -350,7 +351,7 @@ class WaveLoadingView : View{
                     Math.abs(viewHeight - canvasHeight) / 2f + canvasHeight
                 )
                 if (shapeCorner == 0f)
-                    clipPath?.addRect(shapeRect, Path.Direction.CCW)
+                    clipPath.addRect(shapeRect, Path.Direction.CCW)
                 else
                     clipPath.addRoundRect(
                         shapeRect,
@@ -366,7 +367,7 @@ class WaveLoadingView : View{
                     canvasHeight.toFloat()
                 )
                 if (shapeCorner == 0f)
-                    clipPath?.addRect(shapeRect, Path.Direction.CCW)
+                    clipPath.addRect(shapeRect, Path.Direction.CCW)
                 else
                     clipPath.addRoundRect(
                         shapeRect,
@@ -374,6 +375,7 @@ class WaveLoadingView : View{
                         Path.Direction.CCW
                     )
             }
+            else -> {}
         }
     }
 
@@ -465,6 +467,7 @@ class WaveLoadingView : View{
                         borderPaint
                     )
             }
+            else -> {}
         }
     }
 
@@ -506,8 +509,8 @@ class WaveLoadingView : View{
                 Math.abs(viewHeight - canvasHeight) / 2f
     }
 
-    private fun adjustAlpha(color : Int?,  factor : Float?) : Int{
-        val alpha = Math.round(Color.alpha(color!!) * factor!!)
+    private fun adjustAlpha(color : Int,  factor : Float) : Int{
+        val alpha = (Color.alpha(color) * factor).roundToInt()
         val red = Color.red(color)
         val green = Color.green(color)
         val blue = Color.blue(color)

@@ -3,12 +3,11 @@ apply plugin: 'kotlin-android-extensions'
 apply plugin: 'kotlin-android'
 
 android {
-    compileSdkVersion 28
-
+    compileSdkVersion 30
 
     defaultConfig {
         minSdkVersion 15
-        targetSdkVersion 28
+        targetSdkVersion 30
         versionCode 1
         versionName "1.0"
     }
@@ -23,22 +22,8 @@ android {
 }
 
 dependencies {
-    compileOnly 'com.android.support:appcompat-v7:28.0.0'
+    compileOnly 'androidx.appcompat:appcompat:1.3.0'
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
 }
 
-repositories {
-    mavenCentral()
-}
-
-apply plugin: 'com.novoda.bintray-release'
-//添加
-publish {
-    repoName = 'jianyu'
-    userOrg = "rain9155"
-    groupId = "com.jianyu"
-    artifactId = 'waveloadingview'
-    publishVersion = "1.0.1"
-    desc = "a wave loading view"
-    website = "https://github.com/rain9155/WaveLoadingView"
-}
+apply from: 'https://raw.githubusercontent.com/rain9155/MavenPublishScript/main/publication.gradle'
