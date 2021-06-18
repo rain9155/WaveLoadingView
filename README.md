@@ -1,33 +1,38 @@
 # WaveLoadingView
-[ ![Download](https://api.bintray.com/packages/rain9155/jianyu/waveloadingview/images/download.svg) ](https://bintray.com/rain9155/jianyu/waveloadingview/_latestVersion)
+
 ### 一个波浪效果的Loading控件，如有问题欢迎[issue](https://github.com/rain9155/WaveLoadingView/issues)，实现步骤请查看[ 使用贝塞尔曲线实现WaveLoadingView](https://juejin.im/post/5d5ffb186fb9a06af2387dd9)这篇文章.
 
-### 1、Pre
+## Pre
 
 不再满足如Android原生的加载中控件，利用贝塞尔曲线原理，自己动手实现的一个加载中控件，实现效果如下.
 
-### 2、Preview
+## Preview
 
 ![waveloading1.gif](/screenshots/waveloading1.gif)
 
-### 3、Download
+## Download
 
-[地址](https://github.com/rain9155/WaveLoadingView/releases/download/1.0.0/app-release-unsigned.apk)
+[点击下载apk体验](https://github.com/rain9155/WaveLoadingView/releases/download/1.0.2/app-debug.apk)
 
-![qr](/screenshots/QR.png)
-
-### 4、How to install？
-
-在app目录下的build.gradle添加依赖，如下：
-
+## How to install？
+在项目根目录的build.gradle引入仓库：
+```groovy
+allprojects {
+    repositories {
+        mavenCentral()
+    }
+}
 ```
+
+在app目录下的build.gradle添加依赖：
+```groovy
 dependencies {
-    implementation 'com.jianyu:waveloadingview:1.0.1'
+    implementation 'io.github.rain9155:waveloadingview:1.0.2'
 }
 
 ```
 
-### 5、How to use？
+## How to use？
 
 在布局中直接引用，如下：
 
@@ -76,7 +81,7 @@ wl.startLoading()//启动loading
 
 
 
-#### Attrs
+### Attrs
 
 |          名称          |                             说明                             |
 | :--------------------: | :----------------------------------------------------------: |
